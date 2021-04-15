@@ -443,7 +443,7 @@ namespace BetterJoyForCemu {
             byte[] a = Enumerable.Repeat((byte)0xFF, 25).ToArray();
             a[0] = 0x18;
             a[1] = 0x01;
-            Subcommand(0x38, a, 25);
+            //Subcommand(0x38, a, 25);
         }
 
         public void SetHomeLight(bool on) {
@@ -455,7 +455,7 @@ namespace BetterJoyForCemu {
                 a[0] = 0x10;
                 a[1] = 0x01;
             }
-            Subcommand(0x38, a, 25);
+            //Subcommand(0x38, a, 25);
         }
 
         private void SetHCIState(byte state) {
