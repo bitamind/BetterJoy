@@ -101,12 +101,12 @@ namespace BetterJoyForCemu {
         byte[] default_buf = { 0x0, 0x1, 0x40, 0x40, 0x0, 0x1, 0x40, 0x40 };
 
         private byte[] stick_raw = { 0, 0, 0 };
-        private UInt16[] stick_cal = { 0, 0, 0, 0, 0, 0 };
+        private UInt16[] stick_cal = { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
         private UInt16 deadzone;
         private UInt16[] stick_precal = { 0, 0 };
 
         private byte[] stick2_raw = { 0, 0, 0 };
-        private UInt16[] stick2_cal = { 0, 0, 0, 0, 0, 0 };
+        private UInt16[] stick2_cal = { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
         private UInt16 deadzone2;
         private UInt16[] stick2_precal = { 0, 0 };
 
@@ -590,7 +590,8 @@ namespace BetterJoyForCemu {
                     DebugPrint(string.Format("Duplicate timestamp enqueued. TS: {0:X2}", ts_en), DebugType.THREADING);
                 }
                 ts_en = raw_buf[1];
-                DebugPrint(string.Format("Enqueue. Bytes read: {0:D}. Timestamp: {1:X2}", ret, raw_buf[1]), DebugType.THREADING);
+                //DebugPrint(string.Format("Enqueue. Bytes read: {0:D}. Timestamp: {1:X2}", ret, raw_buf[1]), DebugType.THREADING);
+                //DebugPrint(string.Format("read: {0:X2}:{1:X2}:{2:X2}:{3:X2}:{4:X2}:{5:X2}", raw_buf[6], raw_buf[7], raw_buf[8], raw_buf[9], raw_buf[10], raw_buf[11]), DebugType.THREADING);
             }
             return ret;
         }
@@ -853,7 +854,7 @@ namespace BetterJoyForCemu {
 
                 stick_precal[0] = (UInt16)(stick_raw[0] | ((stick_raw[1] & 0xf) << 8));
                 stick_precal[1] = (UInt16)((stick_raw[1] >> 4) | (stick_raw[2] << 4));
-                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 2048, 2048, 2048, 2048, 2048, 2048 };
+                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
                 ushort dz = form.useControllerStickCalibration ? deadzone : (ushort)200;
                 stick = CenterSticks(stick_precal, cal, dz);
 
@@ -863,6 +864,7 @@ namespace BetterJoyForCemu {
                     ushort dz2 = form.useControllerStickCalibration ? deadzone2 : (ushort)200;
                     stick2 = CenterSticks(stick2_precal, form.useControllerStickCalibration ? stick2_cal : cal, dz2);
                 }
+                DebugPrint($"left: {stick[0]:f4}, {stick[1]:f4} right:{stick2[0]:f4}, {stick2[1]:f4}", DebugType.THREADING);
 
                 // Read other Joycon's sticks
                 if (isLeft && other != null && other != this) {
