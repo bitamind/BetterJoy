@@ -101,12 +101,12 @@ namespace BetterJoyForCemu {
         byte[] default_buf = { 0x0, 0x1, 0x40, 0x40, 0x0, 0x1, 0x40, 0x40 };
 
         private byte[] stick_raw = { 0, 0, 0 };
-        private UInt16[] stick_cal = { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
+        private UInt16[] stick_cal = { 0x780, 0x780, 0x780, 0x780, 0x780, 0x780 };
         private UInt16 deadzone;
         private UInt16[] stick_precal = { 0, 0 };
 
         private byte[] stick2_raw = { 0, 0, 0 };
-        private UInt16[] stick2_cal = { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
+        private UInt16[] stick2_cal = { 0x780, 0x780, 0x780, 0x780, 0x780, 0x780 };
         private UInt16 deadzone2;
         private UInt16[] stick2_precal = { 0, 0 };
 
@@ -114,12 +114,12 @@ namespace BetterJoyForCemu {
         private bool imu_enabled = false;
         private Int16[] acc_r = { 0, 0, 0 };
         private Int16[] acc_neutral = { 0, 0, 0 };
-        private Int16[] acc_sensiti = { 0, 0, 0 };
+        private Int16[] acc_sensiti = { 16384, 16384, 16384 };
         private Vector3 acc_g;
 
         private Int16[] gyr_r = { 0, 0, 0 };
         private Int16[] gyr_neutral = { 0, 0, 0 };
-        private Int16[] gyr_sensiti = { 0, 0, 0 };
+        private Int16[] gyr_sensiti = { 18642, 18642, 18642 };
         private Vector3 gyr_g;
 
         private float[] cur_rotation; // Filtered IMU data
@@ -590,7 +590,7 @@ namespace BetterJoyForCemu {
                     DebugPrint(string.Format("Duplicate timestamp enqueued. TS: {0:X2}", ts_en), DebugType.THREADING);
                 }
                 ts_en = raw_buf[1];
-                //DebugPrint(string.Format("Enqueue. Bytes read: {0:D}. Timestamp: {1:X2}", ret, raw_buf[1]), DebugType.THREADING);
+                DebugPrint(string.Format("Enqueue. Bytes read: {0:D}. Timestamp: {1:X2}", ret, raw_buf[1]), DebugType.THREADING);
                 //DebugPrint(string.Format("read: {0:X2}:{1:X2}:{2:X2}:{3:X2}:{4:X2}:{5:X2}", raw_buf[6], raw_buf[7], raw_buf[8], raw_buf[9], raw_buf[10], raw_buf[11]), DebugType.THREADING);
             }
             return ret;
@@ -854,7 +854,7 @@ namespace BetterJoyForCemu {
 
                 stick_precal[0] = (UInt16)(stick_raw[0] | ((stick_raw[1] & 0xf) << 8));
                 stick_precal[1] = (UInt16)((stick_raw[1] >> 4) | (stick_raw[2] << 4));
-                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff, 0x7ff };
+                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 0x800, 0x800, 0x800, 0x800, 0x800, 0x800 };
                 ushort dz = form.useControllerStickCalibration ? deadzone : (ushort)200;
                 stick = CenterSticks(stick_precal, cal, dz);
 
@@ -864,7 +864,7 @@ namespace BetterJoyForCemu {
                     ushort dz2 = form.useControllerStickCalibration ? deadzone2 : (ushort)200;
                     stick2 = CenterSticks(stick2_precal, form.useControllerStickCalibration ? stick2_cal : cal, dz2);
                 }
-                DebugPrint($"left: {stick[0]:f4}, {stick[1]:f4} right:{stick2[0]:f4}, {stick2[1]:f4}", DebugType.THREADING);
+                //DebugPrint($"left: {stick[0]:f4}, {stick[1]:f4} right:{stick2[0]:f4}, {stick2[1]:f4}", DebugType.THREADING);
 
                 // Read other Joycon's sticks
                 if (isLeft && other != null && other != this) {
@@ -965,6 +965,8 @@ namespace BetterJoyForCemu {
                 acc_r[0] = (Int16)(report_buf[13 + n * 12] | ((report_buf[14 + n * 12] << 8) & 0xff00));
                 acc_r[1] = (Int16)(report_buf[15 + n * 12] | ((report_buf[16 + n * 12] << 8) & 0xff00));
                 acc_r[2] = (Int16)(report_buf[17 + n * 12] | ((report_buf[18 + n * 12] << 8) & 0xff00));
+                //DebugPrint($"acc: {acc_r[0]:d}, {acc_r[1]:d}, {acc_r[2]:d} gyro: {gyr_r[0]:d}, {gyr_r[1]:d}, {gyr_r[2]:d}", DebugType.THREADING);
+
 
                 if (form.allowCalibration) {
                     for (int i = 0; i < 3; ++i) {
@@ -1044,6 +1046,7 @@ namespace BetterJoyForCemu {
                 // Update rotation Quaternion
                 float deg_to_rad = 0.0174533f;
                 AHRS.Update(gyr_g.X * deg_to_rad, gyr_g.Y * deg_to_rad, gyr_g.Z * deg_to_rad, acc_g.X, acc_g.Y, acc_g.Z);
+                //DebugPrint($"acc: {acc_g.X:F3}, {acc_g.Y:F3}, {acc_g.Z:F3} gyro: {gyr_g.X:F3}, {gyr_g.Y:F3}, {gyr_g.Z:F3}", DebugType.THREADING);
             }
         }
 
