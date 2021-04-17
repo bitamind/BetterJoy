@@ -1127,7 +1127,7 @@ namespace BetterJoyForCemu {
 
         private void dump_calibration_data() {
             if (isHORIPAD) {
-                form.useControllerStickCalibration = true;
+                //form.useControllerStickCalibration = true;
                 acc_sensiti[0] = 16384;
                 acc_sensiti[1] = 16384;
                 acc_sensiti[2] = 16384;
