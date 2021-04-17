@@ -29,6 +29,10 @@ namespace BetterJoyForCemu {
         private const ushort product_r = 0x2007;
         private const ushort product_pro = 0x2009;
         private const ushort product_snes = 0x2017;
+        private const ushort vendor_id_hori = 0x0f0d; // Hori Co., Ltd
+        private const ushort product_id_horipad = 0x00f6; // NSW-175 WIRELESS HORIPAD for Nintendo Switch
+        private const uint THIRD_PARTY_CON = 0x1u;
+        private const uint WIRELESS_HORIPAD = 0x2u;
 
         public ConcurrentList<Joycon> j { get; private set; } // Array of all connected Joy-Cons
         static JoyconManager instance;
@@ -197,7 +201,9 @@ namespace BetterJoyForCemu {
 
                     bool isPro = prod_id == product_pro;
                     bool isSnes = prod_id == product_snes;
-                    j.Add(new Joycon(handle, EnableIMU, EnableLocalize & EnableIMU, 0.05f, isLeft, enumerate.path, enumerate.serial_number, j.Count, isPro, isSnes, thirdParty != null));
+                    uint thirdPartyflag = thirdParty != null ? THIRD_PARTY_CON : 0x0u;
+                    if (thirdParty.vendor_id == vendor_id_hori && thirdParty.product_id == product_id_horipad) thirdPartyflag |= WIRELESS_HORIPAD;
+                    j.Add(new Joycon(handle, EnableIMU, EnableLocalize & EnableIMU, 0.05f, isLeft, enumerate.path, enumerate.serial_number, j.Count, isPro, isSnes, thirdPartyflag));
 
                     foundNew = true;
                     j.Last().form = form;

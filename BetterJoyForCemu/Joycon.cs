@@ -16,6 +16,7 @@ namespace BetterJoyForCemu {
         public string path = String.Empty;
         public bool isPro = false;
         public bool isSnes = false;
+        bool isHORIPAD = false;
         bool isUSB = false;
         private Joycon _other = null;
         public Joycon other {
@@ -101,12 +102,12 @@ namespace BetterJoyForCemu {
         byte[] default_buf = { 0x0, 0x1, 0x40, 0x40, 0x0, 0x1, 0x40, 0x40 };
 
         private byte[] stick_raw = { 0, 0, 0 };
-        private UInt16[] stick_cal = { 0x780, 0x780, 0x780, 0x780, 0x780, 0x780 };
+        private UInt16[] stick_cal = { 0, 0, 0, 0, 0, 0 };
         private UInt16 deadzone;
         private UInt16[] stick_precal = { 0, 0 };
 
         private byte[] stick2_raw = { 0, 0, 0 };
-        private UInt16[] stick2_cal = { 0x780, 0x780, 0x780, 0x780, 0x780, 0x780 };
+        private UInt16[] stick2_cal = { 0, 0, 0, 0, 0, 0 };
         private UInt16 deadzone2;
         private UInt16[] stick2_precal = { 0, 0 };
 
@@ -114,12 +115,12 @@ namespace BetterJoyForCemu {
         private bool imu_enabled = false;
         private Int16[] acc_r = { 0, 0, 0 };
         private Int16[] acc_neutral = { 0, 0, 0 };
-        private Int16[] acc_sensiti = { 16384, 16384, 16384 };
+        private Int16[] acc_sensiti = { 0, 0, 0 };
         private Vector3 acc_g;
 
         private Int16[] gyr_r = { 0, 0, 0 };
         private Int16[] gyr_neutral = { 0, 0, 0 };
-        private Int16[] gyr_sensiti = { 18642, 18642, 18642 };
+        private Int16[] gyr_sensiti = { 0, 0, 0 };
         private Vector3 gyr_g;
 
         private float[] cur_rotation; // Filtered IMU data
@@ -281,7 +282,7 @@ namespace BetterJoyForCemu {
         private float[] activeData;
         private MadgwickAHRS AHRS = new MadgwickAHRS(0.005f, 0.01f); // for getting filtered Euler angles of rotation; 5ms sampling rate
 
-        public Joycon(IntPtr handle_, bool imu, bool localize, float alpha, bool left, string path, string serialNum, int id = 0, bool isPro = false, bool isSnes = false, bool thirdParty = false) {
+        public Joycon(IntPtr handle_, bool imu, bool localize, float alpha, bool left, string path, string serialNum, int id = 0, bool isPro = false, bool isSnes = false, uint thirdParty = 0x0u) {
             serial_number = serialNum;
             activeData = new float[6];
             handle = handle_;
@@ -298,7 +299,8 @@ namespace BetterJoyForCemu {
             this.isPro = isPro || isSnes;
             this.isSnes = isSnes;
             isUSB = serialNum == "000000000001";
-            this.thirdParty = thirdParty;
+            if (((thirdParty >> 0) & 0x1) == 1 ) this.thirdParty = true;
+            if (((thirdParty >> 1) & 0x1) == 1 ) this.isHORIPAD = true;
 
             this.path = path;
 
@@ -421,7 +423,7 @@ namespace BetterJoyForCemu {
             // save pairing info
             //Subcommand(0x01, new byte[] { 0x03 }, 1, true);
 
-            BlinkHomeLight();
+            if (!isHORIPAD) BlinkHomeLight();
             SetPlayerLED(leds_);
 
             Subcommand(0x40, new byte[] { (imu_enabled ? (byte)0x1 : (byte)0x0) }, 1);
@@ -443,7 +445,7 @@ namespace BetterJoyForCemu {
             byte[] a = Enumerable.Repeat((byte)0xFF, 25).ToArray();
             a[0] = 0x18;
             a[1] = 0x01;
-            //Subcommand(0x38, a, 25);
+            Subcommand(0x38, a, 25);
         }
 
         public void SetHomeLight(bool on) {
@@ -455,7 +457,7 @@ namespace BetterJoyForCemu {
                 a[0] = 0x10;
                 a[1] = 0x01;
             }
-            //Subcommand(0x38, a, 25);
+            if (!isHORIPAD) Subcommand(0x38, a, 25);
         }
 
         private void SetHCIState(byte state) {
@@ -591,7 +593,6 @@ namespace BetterJoyForCemu {
                 }
                 ts_en = raw_buf[1];
                 DebugPrint(string.Format("Enqueue. Bytes read: {0:D}. Timestamp: {1:X2}", ret, raw_buf[1]), DebugType.THREADING);
-                //DebugPrint(string.Format("read: {0:X2}:{1:X2}:{2:X2}:{3:X2}:{4:X2}:{5:X2}", raw_buf[6], raw_buf[7], raw_buf[8], raw_buf[9], raw_buf[10], raw_buf[11]), DebugType.THREADING);
             }
             return ret;
         }
@@ -854,7 +855,7 @@ namespace BetterJoyForCemu {
 
                 stick_precal[0] = (UInt16)(stick_raw[0] | ((stick_raw[1] & 0xf) << 8));
                 stick_precal[1] = (UInt16)((stick_raw[1] >> 4) | (stick_raw[2] << 4));
-                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 0x800, 0x800, 0x800, 0x800, 0x800, 0x800 };
+                ushort[] cal = form.useControllerStickCalibration ? stick_cal : new ushort[6] { 2048, 2048, 2048, 2048, 2048, 2048 };
                 ushort dz = form.useControllerStickCalibration ? deadzone : (ushort)200;
                 stick = CenterSticks(stick_precal, cal, dz);
 
@@ -864,6 +865,7 @@ namespace BetterJoyForCemu {
                     ushort dz2 = form.useControllerStickCalibration ? deadzone2 : (ushort)200;
                     stick2 = CenterSticks(stick2_precal, form.useControllerStickCalibration ? stick2_cal : cal, dz2);
                 }
+                //DebugPrint($"flag: {form.useControllerStickCalibration} left: {stick_precal[0]:X2}, {stick_precal[1]:X2} right:{stick2_precal[0]:X2}, {stick2_precal[1]:X2}", DebugType.THREADING);
                 //DebugPrint($"left: {stick[0]:f4}, {stick[1]:f4} right:{stick2[0]:f4}, {stick2[1]:f4}", DebugType.THREADING);
 
                 // Read other Joycon's sticks
@@ -1124,6 +1126,29 @@ namespace BetterJoyForCemu {
         }
 
         private void dump_calibration_data() {
+            if (isHORIPAD) {
+                form.useControllerStickCalibration = true;
+                acc_sensiti[0] = 16384;
+                acc_sensiti[1] = 16384;
+                acc_sensiti[2] = 16384;
+                gyr_sensiti[0] = 18642;
+                gyr_sensiti[1] = 18642;
+                gyr_sensiti[2] = 18642;
+                stick_cal[0] = 0x780;
+                stick_cal[1] = 0x780;
+                stick_cal[2] = 0x780;
+                stick_cal[3] = 0x870;
+                stick_cal[4] = 0x780;
+                stick_cal[5] = 0x780;
+                deadzone = (ushort)200;
+                stick2_cal[0] = 0x780;
+                stick2_cal[1] = 0x780;
+                stick2_cal[2] = 0x780;
+                stick2_cal[3] = 0x830;
+                stick2_cal[4] = 0x780;
+                stick2_cal[5] = 0x780;
+                deadzone2 = (ushort)200;
+            }
             if (isSnes || thirdParty)
                 return;
             HIDapi.hid_set_nonblocking(handle, 0);
