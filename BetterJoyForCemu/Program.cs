@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -358,8 +359,8 @@ namespace BetterJoyForCemu {
 
         public static List<SController> thirdPartyCons = new List<SController>();
 
-        private static WindowsInput.EventSources.IKeyboardEventSource keyboard;
-        private static WindowsInput.EventSources.IMouseEventSource mouse;
+        private static WindowsInput.Events.Sources.IKeyboardEventSource keyboard;
+        private static WindowsInput.Events.Sources.IMouseEventSource mouse;
 
         public static void Start() {
             pid = Process.GetCurrentProcess().Id.ToString(); // get current process id for HidCerberus.Srv
@@ -442,7 +443,7 @@ namespace BetterJoyForCemu {
             form.console.AppendText("All systems go\r\n");
         }
 
-        private static void Mouse_MouseEvent(object sender, WindowsInput.EventSources.EventSourceEventArgs<WindowsInput.EventSources.MouseEvent> e) {
+        private static void Mouse_MouseEvent(object sender, WindowsInput.Events.Sources.EventSourceEventArgs<WindowsInput.Events.Sources.MouseEvent> e) {
             if (e.Data.ButtonDown != null) {
                 string res_val = Config.Value("reset_mouse");
                 if (res_val.StartsWith("mse_"))
@@ -465,7 +466,7 @@ namespace BetterJoyForCemu {
             }
         }
 
-        private static void Keyboard_KeyEvent(object sender, WindowsInput.EventSources.EventSourceEventArgs<WindowsInput.EventSources.KeyboardEvent> e) {
+        private static void Keyboard_KeyEvent(object sender, WindowsInput.Events.Sources.EventSourceEventArgs<WindowsInput.Events.Sources.KeyboardEvent> e) {
             if (e.Data.KeyDown != null) {
                 string res_val = Config.Value("reset_mouse");
                 if (res_val.StartsWith("key_"))
@@ -511,6 +512,9 @@ namespace BetterJoyForCemu {
         private static string appGuid = "1bf709e9-c133-41df-933a-c9ff3f664c7b"; // randomly-generated
         static void Main(string[] args) {
 
+            // Setting the culturesettings so float gets parsed correctly
+            CultureInfo.CurrentCulture = new CultureInfo("en-US", false);
+
             // Set the correct DLL for the current OS
             SetupDlls();
 
@@ -528,12 +532,10 @@ namespace BetterJoyForCemu {
         }
 
         static void SetupDlls() {
-            const int LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000;
-            SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-            AddDllDirectory(Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                Environment.Is64BitProcess ? "x64" : "x86"
-            ));
+            string archPath = $"{AppDomain.CurrentDomain.BaseDirectory}{(Environment.Is64BitProcess ? "x64" : "x86")}\\";
+            string pathVariable = Environment.GetEnvironmentVariable("PATH");
+            pathVariable = $"{archPath};{pathVariable}";
+            Environment.SetEnvironmentVariable("PATH", pathVariable);
         }
 
         // Helper funtions to set the hidapi dll location acording to the system instruction set.
